@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+
+import subprocess
+import rclpy
+import time
+from rclpy.node import Node
+from ament_index_python.packages import get_package_share_directory
+
+class ActionEditorExecutor(Node):
+    def __init__(self):
+        super().__init__('op3_action_editor_executor')
+def main(args=None):
+    rclpy.init(args=args)
+    node = ActionEditorExecutor()
+
+    # Define your package and executable
+    package = "op3_action_editor"
+    executable = "op3_action_editor"
+
+    gazebo_default = False
+    gazebo_robot_name_default = 'robotis_op3'
+
+    offset_file_path_default = get_package_share_directory('op3_manager') + '/config/offset.yaml'
+    robot_file_path_default = get_package_share_directory('op3_manager') + '/config/OP3.robot'
+    init_file_path_default = get_package_share_directory('op3_manager') + '/config/dxl_init_OP3.yaml'
+    action_file_path_default = get_package_share_directory('op3_action_module') + '/data/motion_4095.bin'
+    device_name_default = '/dev/ttyUSB0'
+
+    # Define any parameters or arguments
+    params = [
+        '--ros-args',
+        '-p', f'gazebo:={gazebo_default}',
+        '-p', f'gazebo_robot_name:={gazebo_robot_name_default}',
+        '-p', f'offset_file_path:={offset_file_path_default}',
+        '-p', f'robot_file_path:={robot_file_path_default}',
+        '-p', f'init_file_path:={init_file_path_default}',
+        '-p', f'action_file_path:={action_file_path_default}',
+        '-p', f'device_name:={device_name_default}'
+    ]
+
+    try:
+        proc_player = subprocess.Popen(['ros2', 'run', 'ros_mpg321_player', 'ros_mpg321_player'],
+                      stdout=subprocess.DEVNULL,  # Redirect standard output
+                      stderr=subprocess.DEVNULL   # Redirect standard error
+        )
+    except Exception as e:
+      print(f"Failed to run ros_mpg321_player: {e}")
+      return 1
+
+    try:
+        # Run the node in the same terminal
+        proc_editor = subprocess.Popen(['ros2', 'run', package, executable] + params)
+    except subprocess.CalledProcessError as e:
+        print(f"Error while running op3_action_editor: {e}")
+        proc_player.kill()
+        return 1
+
+    while True:
+        if proc_player.poll() is not None:
+            break
+
+        if proc_editor.poll() is not None:
+            break
+    
+        time.sleep(1) 
+        
+
+    proc_player.kill()
+    proc_editor.kill()
+
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+
+#dynamixel | /dev/ttyUSB0 | 7   | XM430-W350     | 2.0      | r_hip_yaw      | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 8   | XM430-W350     | 2.0      | l_hip_yaw      | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 9   | XM430-W350     | 2.0      | r_hip_roll     | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 10  | XM430-W350     | 2.0      | l_hip_roll     | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 11  | XM430-W350     | 2.0      | r_hip_pitch    | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 12  | XM430-W350     | 2.0      | l_hip_pitch    | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 13  | XM430-W350     | 2.0      | r_knee         | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 14  | XM430-W350     | 2.0      | l_knee         | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 15  | XM430-W350     | 2.0      | r_ank_pitch    | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 16  | XM430-W350     | 2.0      | l_ank_pitch    | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 17  | XM430-W350     | 2.0      | r_ank_roll     | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 18  | XM430-W350     | 2.0      | l_ank_roll     | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 19  | XM430-W350     | 2.0      | head_pan       | present_position, position_p_gain, position_i_gain, position_d_gain
+#dynamixel | /dev/ttyUSB0 | 20  | XM430-W350     | 2.0      | head_tilt      | present_position, position_p_gain, position_i_gain, position_d_gain

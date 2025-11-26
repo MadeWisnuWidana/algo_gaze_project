@@ -1,0 +1,5 @@
+brone_gaze/brone_gaze/gaze_env/
+venv/
+__pycache__/
+*.so
+*.pyc
