@@ -2,7 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image, JointState
-from std_msgs.msg import Header
+from std_msgs.msg import Header, Bool 
 from cv_bridge import CvBridge
 import cv2
 import mediapipe as mp
@@ -14,6 +14,8 @@ from collections import deque
 import os
 import time 
 import math
+import csv  
+from datetime import datetime 
 from ament_index_python.packages import get_package_share_directory
 from rclpy.qos import QoSProfile, DurabilityPolicy
 
@@ -34,7 +36,7 @@ class FuzzyGazeNode(Node):
 
     def __init__(self):
         super().__init__('algo_gaze_node')
-        self.get_logger().info('Fuzzy Gaze Node: AUTO-SYNC & SMOOTH START ACTIVATED.')
+        self.get_logger().info('Fuzzy Gaze Node: HIGH RESPONSE & SMOOTH (EMA FILTER).')
 
         # --- Load Model YOLO ---
         self.declare_parameter('yolo_model_path', 'yolo11s.pt')
@@ -62,28 +64,48 @@ class FuzzyGazeNode(Node):
         self.last_target_switch_time = 0.0
         self.min_switch_delay = 1.0 
         
-        # Variabel Soft Start (Ramp-Up)
+        # [REVISI RESPONSIF] Soft Start dipercepat
         self.tracking_start_time = 0.0  
-        self.ramp_duration = 1.5        
+        self.ramp_duration = 0.8  # DIKURANGI (2.0 -> 0.8s) agar reaksi cepat
+
+        # [BARU] Parameter Smoothing EMA (Output Filter)
+        self.servo_alpha = 0.25   # 0.25 = Keseimbangan antara halus dan cepat
+        self.target_pan = 0.0
+        self.target_tilt = 0.0
 
         # --- Variabel Servo ---
         self.current_pan = 0.0
         self.current_tilt = 0.0
-        self.is_initialized = False # Penanda sinkronisasi posisi awal
+        self.is_initialized = False 
         
-        # Smoothing Input
+        # Smoothing Input (Koordinat Wajah)
         self.prev_norm_x = 0.0
         self.prev_norm_y = 0.0
         self.prev_norm_z = 0.0
-        self.alpha_coord = 0.3 
+        self.alpha_coord = 0.2 # Sedikit diperbesar agar input lebih update
 
         # --- ARAH SERVO ---
         self.pan_dir = -1 
         self.tilt_dir = 1   
 
+        # --- VARIABEL PEREKAMAN DATA ---
+        self.is_recording = False
+        self.recording_data = []
+        self.rec_start_time = 0.0
+        self.frame_center_x = 160 
+        self.frame_center_y = 120 
+        self.pixel_deadband = 16  
+
+        # [BARU] Frame Skipping Variable
+        self.frame_count = 0
+        self.process_every_n_frames = 2 # Proses 1 dari setiap 2 frame (Boost FPS)
+
         # --- Komunikasi ROS 2 ---
         self.image_subscription = self.create_subscription(
             Image, '/image_raw', self.image_callback, 10)
+        
+        self.trigger_sub = self.create_subscription(
+            Bool, '/experiment/trigger', self.trigger_callback, 10)
         
         qos_profile = QoSProfile(depth=10, durability=DurabilityPolicy.TRANSIENT_LOCAL)
 
@@ -100,7 +122,6 @@ class FuzzyGazeNode(Node):
             '/robotis/head_control/set_joint_states',
             10)
 
-        # [BARU] Subscriber untuk Sinkronisasi Posisi Awal Servo
         self.joint_sub = self.create_subscription(
             JointState,
             '/robotis/present_joint_states',
@@ -110,24 +131,49 @@ class FuzzyGazeNode(Node):
         self.set_module_client = self.create_client(SetModule, '/robotis/set_present_ctrl_modules')
         self.activate_head_module()
 
-    # --- FUNGSI SINKRONISASI POSISI (PENTING!) ---
+    # --- Callback Pemicu Rekaman ---
+    def trigger_callback(self, msg):
+        if msg.data and not self.is_recording:
+            self.is_recording = True
+            self.recording_data = []
+            self.rec_start_time = time.time()
+            self.get_logger().warn(">>> DATA RECORDING STARTED <<<")
+        elif not msg.data and self.is_recording:
+            self.is_recording = False
+            self.save_data_to_csv()
+            self.get_logger().warn(">>> DATA RECORDING STOPPED & SAVED <<<")
+
+    # --- Simpan CSV ---
+    def save_data_to_csv(self):
+        if not self.recording_data:
+            self.get_logger().warn("Data kosong, tidak ada yang disimpan.")
+            return
+
+        filename = f"gaze_metrics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        path = os.path.join(os.getcwd(), filename)
+        
+        try:
+            with open(path, mode='w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(['Time_Sec', 'Latency_ms', 'FPS', 'Error_Px', 'On_Target', 'Pan_Angle', 'Tilt_Angle'])
+                writer.writerows(self.recording_data)
+            self.get_logger().info(f"File saved: {path}")
+        except Exception as e:
+            self.get_logger().error(f"Gagal menyimpan CSV: {e}")
+
+    # --- FUNGSI SINKRONISASI POSISI ---
     def joint_state_callback(self, msg):
-        """
-        Membaca posisi asli robot saat ini.
-        Hanya digunakan sekali di awal (atau saat idle) agar variabel internal
-        sama dengan posisi fisik servo.
-        """
         if not self.is_initialized:
             try:
                 if 'head_pan' in msg.name and 'head_tilt' in msg.name:
                     idx_pan = msg.name.index('head_pan')
                     idx_tilt = msg.name.index('head_tilt')
-                    
-                    # Salin posisi asli ke variabel internal
                     self.current_pan = msg.position[idx_pan]
                     self.current_tilt = msg.position[idx_tilt]
-                    
-                    self.is_initialized = True # Tandai sudah sinkron
+                    # Init target agar tidak jump
+                    self.target_pan = self.current_pan
+                    self.target_tilt = self.current_tilt
+                    self.is_initialized = True
                     self.get_logger().info(f'SYNC OK: Start from Pan={self.current_pan:.2f}, Tilt={self.current_tilt:.2f}')
             except ValueError:
                 pass
@@ -136,7 +182,6 @@ class FuzzyGazeNode(Node):
         if not self.set_module_client.wait_for_service(timeout_sec=2.0):
             self.get_logger().warn('Service manager belum siap...')
             return
-
         req = SetModule.Request()
         req.module_name = 'head_control_module'
         self.future = self.set_module_client.call_async(req)
@@ -153,21 +198,38 @@ class FuzzyGazeNode(Node):
             self.get_logger().error(f'Service error: {e}')
 
     def image_callback(self, msg):
-        # Jangan proses gambar jika posisi servo belum tersinkronisasi
         if not self.is_initialized:
             return
 
+        # [REVISI] Frame Skipping Logic
+        self.frame_count += 1
+        if self.frame_count % self.process_every_n_frames != 0:
+            return
+
+        proc_start = time.perf_counter()
+
         try:
-            frame = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+            frame_raw = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
         except Exception as e:
             return
+        
+        # Resize 320x240
+        frame = cv2.resize(frame_raw, (320, 240))
             
         frame_height, frame_width, _ = frame.shape
-        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
+        self.frame_center_x = frame_width / 2
+        self.frame_center_y = frame_height / 2
+        
+        # [REVISI] DEADBAND DIPERKECIL JADI 5% (Agar tilt lebih responsif)
+        self.pixel_deadband = 0.05 * self.frame_center_x 
+
+        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         yolo_results = self.yolo_model.track(image_rgb, classes=0, conf=0.5, persist=True, verbose=False)
         
         detected_people = []
+        metric_pixel_error = -1
+        metric_on_target = 0
 
         if yolo_results[0].boxes is not None and yolo_results[0].boxes.id is not None:
             boxes = yolo_results[0].boxes.xyxy.cpu().numpy()
@@ -175,7 +237,7 @@ class FuzzyGazeNode(Node):
 
             for box, track_id in zip(boxes, ids):
                 x1, y1, x2, y2 = map(int, box)
-                padding = 30
+                padding = 10 # Padding dikurangi sedikit
                 x1_pad, y1_pad = max(0, x1 - padding), max(0, y1 - padding)
                 x2_pad, y2_pad = min(frame_width, x2 + padding), min(frame_height, y2 + padding)
                 
@@ -240,7 +302,6 @@ class FuzzyGazeNode(Node):
             potential_winner = sorted_people[0]
             current_time = time.time()
 
-            # Logika Reset Ramp saat target berubah
             if self.current_target_id is None:
                 self.current_target_id = potential_winner['id']
                 self.last_target_switch_time = current_time
@@ -282,12 +343,18 @@ class FuzzyGazeNode(Node):
                         crop_x1, crop_y1, crop_x2, crop_y2 = p['crop_bbox']
                         face_center_x = crop_x1 + (nose.x * (crop_x2 - crop_x1))
                         face_center_y = crop_y1 + (nose.y * (crop_y2 - crop_y1))
-                        cv2.circle(frame, (int(face_center_x), int(face_center_y)), 8, (0, 255, 255), -1)
+                        cv2.circle(frame, (int(face_center_x), int(face_center_y)), 4, (0, 255, 255), -1)
 
                     if face_center_x is None:
                         face_center_x = (x1 + x2) / 2.0
                         face_center_y = y1 + (y2 - y1) * 0.2
-                        cv2.circle(frame, (int(face_center_x), int(face_center_y)), 8, (255, 0, 255), -1)
+                        cv2.circle(frame, (int(face_center_x), int(face_center_y)), 4, (255, 0, 255), -1)
+
+                    # Metrik Error
+                    err_x_px = face_center_x - self.frame_center_x
+                    err_y_px = face_center_y - self.frame_center_y
+                    metric_pixel_error = math.sqrt(err_x_px**2 + err_y_px**2)
+                    metric_on_target = 1 if metric_pixel_error <= self.pixel_deadband else 0
 
                     raw_norm_x = (face_center_x / frame_width) * 2.0 - 1.0
                     raw_norm_y = (face_center_y / frame_height) * 2.0 - 1.0
@@ -298,11 +365,27 @@ class FuzzyGazeNode(Node):
                     self.prev_norm_x, self.prev_norm_y = smooth_x, smooth_y
 
                     self.publish_coordinates(smooth_x, smooth_y, 0.0, msg.header)
-                    self.track_face_soft_start(smooth_x, smooth_y)
+                    self.track_face_smooth(smooth_x, smooth_y)
                 
-                (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-                cv2.rectangle(frame, (x1, y1 - h - 15), (x1 + w, y1), color, -1)
-                cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+                (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+                cv2.rectangle(frame, (x1, y1 - h - 10), (x1 + w, y1), color, -1)
+                cv2.putText(frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+
+        if self.is_recording:
+            proc_end = time.perf_counter()
+            latency_ms = (proc_end - proc_start) * 1000
+            fps = 1.0 / (proc_end - proc_start) if (proc_end - proc_start) > 0 else 0
+            
+            timestamp = time.time() - self.rec_start_time
+            self.recording_data.append([
+                round(timestamp, 3),
+                round(latency_ms, 2),
+                round(fps, 2),
+                round(metric_pixel_error, 2),
+                metric_on_target,
+                round(self.current_pan, 3),
+                round(self.current_tilt, 3)
+            ])
 
         try:
             annotated_msg = self.bridge.cv2_to_imgmsg(frame, 'bgr8')
@@ -311,21 +394,22 @@ class FuzzyGazeNode(Node):
         except Exception as e:
             pass
 
-    def track_face_soft_start(self, error_x, error_y):
+    def track_face_smooth(self, error_x, error_y):
         error_magnitude = math.sqrt(error_x**2 + error_y**2)
 
-        # Deadband
-        DEADBAND = 0.10 
+        # Deadband (5% - Sangat kecil agar responsif tapi tidak shaking)
+        DEADBAND = 0.05 
         if error_magnitude < DEADBAND:
             return 
 
-        # Gain
-        MIN_GAIN = 0.02
-        MAX_GAIN = 0.12 
+        # [REVISI] GAIN DINAIKKAN (AGAR RESPONSIF)
+        MIN_GAIN = 0.03
+        MAX_GAIN = 0.15 # Dikembalikan ke level tinggi agar cepat (sebelumnya 0.06)
+        
         base_gain = MIN_GAIN + (error_magnitude * (MAX_GAIN - MIN_GAIN))
         base_gain = min(base_gain, MAX_GAIN)
 
-        # Ramp-Up (Soft Start)
+        # Ramp-Up (0.8 detik, cukup cepat)
         elapsed = time.time() - self.tracking_start_time
         if elapsed < self.ramp_duration:
             ramp_factor = 0.2 + (0.8 * (elapsed / self.ramp_duration))
@@ -334,13 +418,27 @@ class FuzzyGazeNode(Node):
 
         final_gain = base_gain * ramp_factor
 
-        # Update Posisi (Incremental dari posisi terakhir yang sudah disinkronisasi)
-        self.current_pan += (error_x * final_gain * self.pan_dir)
-        self.current_tilt += (error_y * final_gain * self.tilt_dir)
+        # Hitung Target Step (Posisi yang diinginkan selanjutnya)
+        pan_step = (error_x * final_gain * self.pan_dir)
+        tilt_step = (error_y * final_gain * self.tilt_dir)
+        
+        # Akumulasi ke variabel Target (Ideal)
+        self.target_pan = self.current_pan + pan_step
+        self.target_tilt = self.current_tilt + tilt_step
 
-        # Safety Limits
+        # [IMPLEMENTASI EMA FILTER]
+        # Alih-alih langsung update current, kita filter transisi ke target
+        # Ini meredam lonjakan gain tinggi (MAX_GAIN 0.15) agar tetap smooth
+        self.current_pan = (self.servo_alpha * self.target_pan) + ((1 - self.servo_alpha) * self.current_pan)
+        self.current_tilt = (self.servo_alpha * self.target_tilt) + ((1 - self.servo_alpha) * self.current_tilt)
+
+        # Batas Servo
         self.current_pan = max(-1.4, min(1.4, self.current_pan))
-        self.current_tilt = max(-0.5, min(0.8, self.current_tilt))
+        self.current_tilt = max(-1.0, min(1.0, self.current_tilt))
+        
+        # Update target agar sinkron
+        self.target_pan = self.current_pan
+        self.target_tilt = self.current_tilt
 
         joint_msg = JointState()
         joint_msg.header = Header()
@@ -462,6 +560,8 @@ class FuzzyGazeNode(Node):
         main_frame[y1:y2, x1:x2] = frame_crop
 
     def destroy_node(self):
+        if self.is_recording:
+            self.save_data_to_csv()
         self.holistic.close()
         super().destroy_node()
 
