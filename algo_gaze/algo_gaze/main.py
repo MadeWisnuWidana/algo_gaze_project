@@ -36,7 +36,7 @@ class FuzzyGazeNode(Node):
 
     def __init__(self):
         super().__init__('algo_gaze_node')
-        self.get_logger().info('Fuzzy Gaze Node: AGGRESSIVE MODE (High Speed & Response).')
+        self.get_logger().info('Fuzzy Gaze Node: AGGRESSIVE MODE + STABLE NODDING.')
 
         # --- Load Model YOLO ---
         self.declare_parameter('yolo_model_path', 'yolo11s.pt')
@@ -64,13 +64,19 @@ class FuzzyGazeNode(Node):
         self.last_target_switch_time = 0.0
         self.min_switch_delay = 1.0 
         
-        # [TUNING 1: SPEED] Ramp-Up Instan (0.3s)
+        # --- [BARU] Variabel Nodding (Posisi Stabil) ---
+        self.is_nodding = False
+        self.nod_start_time = 0.0
+        self.nod_base_tilt = 0.0
+        self.stable_start_time = 0.0   # Waktu mulai stabil
+        self.is_stable_now = False     # Status stabil saat ini
+        self.has_nodded_for_target = False # Flag agar 1 target = 1 anggukan
+        self.last_target_id_check = None
+
+        # [TUNING: HIGH RESPONSE]
         self.tracking_start_time = 0.0  
         self.ramp_duration = 0.3
-
-        # [TUNING 2: RESPONSIVE] Servo Alpha Naik (0.30)
-        # Mengurangi smoothing agar servo lebih "menggigit" target
-        self.servo_alpha = 0.30   
+        self.servo_alpha = 0.30   # Responsif
         self.target_pan = 0.0
         self.target_tilt = 0.0
 
@@ -79,7 +85,7 @@ class FuzzyGazeNode(Node):
         self.current_tilt = 0.0
         self.is_initialized = False 
         
-        # Input Smoothing (Tetap 0.15 agar input tidak terlalu noisy)
+        # Input Smoothing 
         self.prev_norm_x = 0.0
         self.prev_norm_y = 0.0
         self.prev_norm_z = 0.0
@@ -97,9 +103,9 @@ class FuzzyGazeNode(Node):
         self.frame_center_y = 120 
         self.pixel_deadband = 16  
 
-        # Frame Skipping (1 dari 3 frame)
+        # Frame Skipping 
         self.frame_count = 0
-        self.process_every_n_frames = 3 
+        self.process_every_n_frames = 2 # Gunakan 2 agar lebih responsif dari 3
 
         # --- Komunikasi ROS 2 ---
         self.image_subscription = self.create_subscription(
@@ -200,6 +206,11 @@ class FuzzyGazeNode(Node):
     def image_callback(self, msg):
         if not self.is_initialized:
             return
+        
+        # [MODIFIKASI] JIKA SEDANG MENGANGGUK, BYPASS DETEKSI
+        if self.is_nodding:
+            self.process_nodding_animation()
+            return 
 
         # Frame Skipping Logic
         self.frame_count += 1
@@ -219,8 +230,7 @@ class FuzzyGazeNode(Node):
         self.frame_center_x = frame_width / 2
         self.frame_center_y = frame_height / 2
         
-        # [TUNING 4: BALANCE] DEADBAND 10%
-        # Diturunkan dari 12% ke 10% agar lebih mau mengejar target dekat
+        # Deadband 10%
         self.pixel_deadband = 0.10 * self.frame_center_x 
 
         image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -301,25 +311,15 @@ class FuzzyGazeNode(Node):
             potential_winner = sorted_people[0]
             current_time = time.time()
 
-            if self.current_target_id is None:
+            # [MODIFIKASI] Reset status jika target berubah
+            if self.current_target_id != potential_winner['id']:
                 self.current_target_id = potential_winner['id']
                 self.last_target_switch_time = current_time
                 self.tracking_start_time = current_time 
-            else:
-                target_still_visible = any(p['id'] == self.current_target_id for p in detected_people)
-                if not target_still_visible:
-                    self.current_target_id = potential_winner['id']
-                    self.last_target_switch_time = current_time
-                    self.tracking_start_time = current_time 
-                else:
-                    time_ok = (current_time - self.last_target_switch_time) > self.min_switch_delay
-                    current_target_data = next((p for p in detected_people if p['id'] == self.current_target_id), None)
-                    current_score = current_target_data['score'] if current_target_data else 0
-                    
-                    if time_ok and (potential_winner['score'] > (current_score * 1.15)):
-                        self.current_target_id = potential_winner['id']
-                        self.last_target_switch_time = current_time
-                        self.tracking_start_time = current_time 
+                # Reset status nodding
+                self.stable_start_time = current_time
+                self.is_stable_now = False
+                self.has_nodded_for_target = False
             
             for rank, p in enumerate(sorted_people):
                 x1, y1, x2, y2 = p['bbox_yolo']
@@ -355,10 +355,31 @@ class FuzzyGazeNode(Node):
                     metric_pixel_error = math.sqrt(err_x_px**2 + err_y_px**2)
                     metric_on_target = 1 if metric_pixel_error <= self.pixel_deadband else 0
 
+                    # [MODIFIKASI UTAMA] LOGIKA DETEKSI POSISI STABIL 2 DETIK
+                    if metric_on_target == 1:
+                        # Jika masuk Deadband (Stabil)
+                        if not self.is_stable_now:
+                            self.is_stable_now = True
+                            self.stable_start_time = current_time
+                            self.get_logger().info("Target Stabil di Tengah. Timer Start...")
+                        else:
+                            # Jika sudah stabil, cek durasi
+                            if (current_time - self.stable_start_time > 2.0) and not self.has_nodded_for_target:
+                                self.get_logger().warn(">>> TARGET STABIL 2 DETIK! MENGANGGUK... <<<")
+                                self.is_nodding = True
+                                self.nod_start_time = current_time
+                                self.nod_base_tilt = self.current_tilt
+                                self.has_nodded_for_target = True
+                    else:
+                        # Jika keluar Deadband (Bergerak)
+                        if self.is_stable_now:
+                            self.get_logger().info("Target Bergerak. Timer Reset.")
+                        self.is_stable_now = False
+
                     raw_norm_x = (face_center_x / frame_width) * 2.0 - 1.0
                     raw_norm_y = (face_center_y / frame_height) * 2.0 - 1.0
                     
-                    # [FILTER TAHAP 1] Smoothing Input
+                    # [FILTER TAHAP 1: Koordinat Wajah]
                     smooth_x = (self.alpha_coord * raw_norm_x) + ((1 - self.alpha_coord) * self.prev_norm_x)
                     smooth_y = (self.alpha_coord * raw_norm_y) + ((1 - self.alpha_coord) * self.prev_norm_y)
                     
@@ -394,6 +415,34 @@ class FuzzyGazeNode(Node):
         except Exception as e:
             pass
 
+    # [FUNGSI BARU] Animasi Mengangguk
+    def process_nodding_animation(self):
+        """Fungsi khusus animasi, bypass tracking"""
+        elapsed = time.time() - self.nod_start_time
+        duration = 0.8 # Durasi total anggukan (detik)
+        
+        if elapsed < duration:
+            # Gerakan Sinusoidal Mulus (Turun-Naik-Kembali)
+            # 0 -> PI (Turun), PI -> 2PI (Naik)
+            # Amplitude 0.3 radian
+            offset = 0.3 * math.sin(2 * math.pi * elapsed / duration)
+            
+            # Update posisi (Langsung tanpa smoothing agar cepat)
+            self.target_tilt = self.nod_base_tilt + abs(offset) # Abs agar menunduk (positif)
+            self.current_tilt = self.target_tilt 
+            
+            # Kirim ke motor
+            msg = JointState()
+            msg.header = Header()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.name = ['head_pan', 'head_tilt']
+            msg.position = [float(self.current_pan), float(self.current_tilt)]
+            self.head_pub.publish(msg)
+        else:
+            self.is_nodding = False
+            self.current_tilt = self.nod_base_tilt # Kembalikan ke posisi awal
+            self.get_logger().info("--- Selesai Mengangguk ---")
+
     def track_face_smooth(self, error_x, error_y):
         error_magnitude = math.sqrt(error_x**2 + error_y**2)
 
@@ -403,7 +452,6 @@ class FuzzyGazeNode(Node):
             return 
 
         # [TUNING 3: SPEED] GAIN AGGRESIF (Max 0.20)
-        # Ditingkatkan agar robot lebih berani bergerak
         MIN_GAIN = 0.03
         MAX_GAIN = 0.20
         
@@ -426,7 +474,6 @@ class FuzzyGazeNode(Node):
         self.target_tilt = self.current_tilt + tilt_step
 
         # [FILTER TAHAP 2] Output Smoothing 0.30
-        # Nilai 0.30 berarti servo lebih responsif (hanya 70% inertia posisi lama)
         self.current_pan = (self.servo_alpha * self.target_pan) + ((1 - self.servo_alpha) * self.current_pan)
         self.current_tilt = (self.servo_alpha * self.target_tilt) + ((1 - self.servo_alpha) * self.current_tilt)
 
@@ -453,7 +500,7 @@ class FuzzyGazeNode(Node):
         msg.circles.append(circle_point)
         self.center_pub_.publish(msg)
 
-    # --- Helper Methods Fuzzy ---
+    # --- Helper Methods Fuzzy (Tetap Sama) ---
     def create_fuzzy_controller(self):
         proximity = ctrl.Antecedent(np.arange(0, 1.01, 0.01), 'proximity')
         speech_status = ctrl.Antecedent(np.arange(0, 2, 1), 'speech_status')

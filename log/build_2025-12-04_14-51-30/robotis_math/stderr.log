@@ -1,0 +1,7 @@
+gmake[2]: *** [CMakeFiles/robotis_math.dir/build.make:90: CMakeFiles/robotis_math.dir/src/robotis_trajectory_calculator.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/robotis_math.dir/build.make:202: CMakeFiles/robotis_math.dir/src/preview_control.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/robotis_math.dir/build.make:104: CMakeFiles/robotis_math.dir/src/minimum_jerk_trajectory.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/robotis_math.dir/build.make:118: CMakeFiles/robotis_math.dir/src/minimum_jerk_trajectory_with_via_point.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/robotis_math.dir/build.make:132: CMakeFiles/robotis_math.dir/src/fifth_order_polynomial_trajectory.cpp.o] Interrupt
+gmake[1]: *** [CMakeFiles/Makefile2:137: CMakeFiles/robotis_math.dir/all] Interrupt
+gmake: *** [Makefile:146: all] Interrupt

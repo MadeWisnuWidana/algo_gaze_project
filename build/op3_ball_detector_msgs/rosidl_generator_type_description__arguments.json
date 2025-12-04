@@ -1,0 +1,17 @@
+{
+  "package_name": "op3_ball_detector_msgs",
+  "output_dir": "/home/brone-ub/robotis_ws/src/build/op3_ball_detector_msgs/rosidl_generator_type_description/op3_ball_detector_msgs",
+  "idl_tuples": [
+    "/home/brone-ub/robotis_ws/src/build/op3_ball_detector_msgs/rosidl_adapter/op3_ball_detector_msgs:msg/BallDetectorParams.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_ball_detector_msgs/rosidl_adapter/op3_ball_detector_msgs:msg/CircleSetStamped.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_ball_detector_msgs/rosidl_adapter/op3_ball_detector_msgs:srv/GetParameters.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_ball_detector_msgs/rosidl_adapter/op3_ball_detector_msgs:srv/SetParameters.idl"
+  ],
+  "include_paths": [
+    "std_msgs:/opt/ros/jazzy/share/std_msgs",
+    "builtin_interfaces:/opt/ros/jazzy/share/builtin_interfaces",
+    "sensor_msgs:/opt/ros/jazzy/share/sensor_msgs",
+    "geometry_msgs:/opt/ros/jazzy/share/geometry_msgs",
+    "service_msgs:/opt/ros/jazzy/share/service_msgs"
+  ]
+}

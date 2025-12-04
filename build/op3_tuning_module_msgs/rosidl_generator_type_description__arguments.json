@@ -1,0 +1,16 @@
+{
+  "package_name": "op3_tuning_module_msgs",
+  "output_dir": "/home/brone-ub/robotis_ws/src/build/op3_tuning_module_msgs/rosidl_generator_type_description/op3_tuning_module_msgs",
+  "idl_tuples": [
+    "/home/brone-ub/robotis_ws/src/build/op3_tuning_module_msgs/rosidl_adapter/op3_tuning_module_msgs:msg/JointOffsetData.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_tuning_module_msgs/rosidl_adapter/op3_tuning_module_msgs:msg/JointOffsetPositionData.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_tuning_module_msgs/rosidl_adapter/op3_tuning_module_msgs:msg/JointTorqueOnOff.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_tuning_module_msgs/rosidl_adapter/op3_tuning_module_msgs:msg/JointTorqueOnOffArray.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_tuning_module_msgs/rosidl_adapter/op3_tuning_module_msgs:srv/GetPresentJointOffsetData.idl"
+  ],
+  "include_paths": [
+    "std_msgs:/opt/ros/jazzy/share/std_msgs",
+    "builtin_interfaces:/opt/ros/jazzy/share/builtin_interfaces",
+    "service_msgs:/opt/ros/jazzy/share/service_msgs"
+  ]
+}

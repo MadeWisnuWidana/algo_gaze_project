@@ -1,0 +1,12 @@
+[0mIn this package, headers install destination is set to `include` by ament_auto_package. It is recommended to install `include/usb_cam` instead and will be the default behavior of ament_auto_package from ROS 2 Kilted Kaiju. On distributions before Kilted, ament_auto_package behaves the same way when you use USE_SCOPED_HEADER_INSTALL_DIR option.[0m
+gmake[2]: *** [CMakeFiles/usb_cam_node_exe.dir/build.make:76: CMakeFiles/usb_cam_node_exe.dir/rclcpp_components/node_main_usb_cam_node_exe.cpp.o] Interrupt
+gmake[1]: *** [CMakeFiles/Makefile2:215: CMakeFiles/usb_cam_node_exe.dir/all] Interrupt
+gmake[2]: *** wait: No child processes.  Stop.
+gmake[2]: *** Waiting for unfinished jobs....
+gmake[2]: *** wait: No child processes.  Stop.
+gmake[1]: *** [CMakeFiles/Makefile2:163: CMakeFiles/usb_cam.dir/all] Error 2
+gmake[2]: *** [gtest/CMakeFiles/gtest_main.dir/build.make:76: gtest/CMakeFiles/gtest_main.dir/src/gtest_main.cc.o] Interrupt
+gmake[1]: *** [CMakeFiles/Makefile2:323: gtest/CMakeFiles/gtest_main.dir/all] Interrupt
+gmake[2]: *** [gtest/CMakeFiles/gtest.dir/build.make:76: gtest/CMakeFiles/gtest.dir/src/gtest-all.cc.o] Interrupt
+gmake[1]: *** [CMakeFiles/Makefile2:297: gtest/CMakeFiles/gtest.dir/all] Interrupt
+gmake: *** [Makefile:146: all] Interrupt

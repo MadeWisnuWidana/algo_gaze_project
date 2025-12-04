@@ -1,0 +1,8 @@
+/home/brone-ub/robotis_ws/src/build/robotis_controller_msgs/rosidl_adapter/robotis_controller_msgs:msg/SyncWriteItem.idl
+/home/brone-ub/robotis_ws/src/build/robotis_controller_msgs/rosidl_adapter/robotis_controller_msgs:msg/JointCtrlModule.idl
+/home/brone-ub/robotis_ws/src/build/robotis_controller_msgs/rosidl_adapter/robotis_controller_msgs:msg/StatusMsg.idl
+/home/brone-ub/robotis_ws/src/build/robotis_controller_msgs/rosidl_adapter/robotis_controller_msgs:msg/WriteControlTable.idl
+/home/brone-ub/robotis_ws/src/build/robotis_controller_msgs/rosidl_adapter/robotis_controller_msgs:srv/GetJointModule.idl
+/home/brone-ub/robotis_ws/src/build/robotis_controller_msgs/rosidl_adapter/robotis_controller_msgs:srv/SetJointModule.idl
+/home/brone-ub/robotis_ws/src/build/robotis_controller_msgs/rosidl_adapter/robotis_controller_msgs:srv/SetModule.idl
+/home/brone-ub/robotis_ws/src/build/robotis_controller_msgs/rosidl_adapter/robotis_controller_msgs:srv/LoadOffset.idl

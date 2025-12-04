@@ -1,0 +1,25 @@
+{
+  "package_name": "op3_online_walking_module_msgs",
+  "output_dir": "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_generator_type_description/op3_online_walking_module_msgs",
+  "idl_tuples": [
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:msg/JointPose.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:msg/KinematicsPose.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:msg/FootStepCommand.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:msg/FootStepArray.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:msg/PreviewRequest.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:msg/PreviewResponse.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:msg/WalkingParam.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:msg/Step2D.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:msg/Step2DArray.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:srv/GetJointPose.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:srv/GetKinematicsPose.idl",
+    "/home/brone-ub/robotis_ws/src/build/op3_online_walking_module_msgs/rosidl_adapter/op3_online_walking_module_msgs:srv/GetPreviewMatrix.idl"
+  ],
+  "include_paths": [
+    "std_msgs:/opt/ros/jazzy/share/std_msgs",
+    "builtin_interfaces:/opt/ros/jazzy/share/builtin_interfaces",
+    "sensor_msgs:/opt/ros/jazzy/share/sensor_msgs",
+    "geometry_msgs:/opt/ros/jazzy/share/geometry_msgs",
+    "service_msgs:/opt/ros/jazzy/share/service_msgs"
+  ]
+}

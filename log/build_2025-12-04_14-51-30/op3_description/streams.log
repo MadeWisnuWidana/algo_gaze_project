@@ -1,0 +1,81 @@
+[0.032s] Invoking command in '/home/brone-ub/robotis_ws/src/build/op3_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/brone-ub/robotis_ws/install/algo_gaze:/home/brone-ub/robotis_ws/install/brone_gaze:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PS1=(ros_venv) \[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ VIRTUAL_ENV_PROMPT=(ros_venv) /usr/bin/cmake /home/brone-ub/robotis_ws/src/ROBOTIS-OP3-Common/op3_description -DCMAKE_INSTALL_PREFIX=/home/brone-ub/robotis_ws/src/install/op3_description
+[3.627s] -- The C compiler identification is GNU 13.3.0
+[3.628s] -- The CXX compiler identification is GNU 13.3.0
+[3.628s] -- Detecting C compiler ABI info
+[3.628s] -- Detecting C compiler ABI info - done
+[3.628s] -- Check for working C compiler: /usr/bin/cc - skipped
+[3.628s] -- Detecting C compile features
+[3.628s] -- Detecting C compile features - done
+[3.629s] -- Detecting CXX compiler ABI info
+[3.629s] -- Detecting CXX compiler ABI info - done
+[3.629s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[3.629s] -- Detecting CXX compile features
+[3.629s] -- Detecting CXX compile features - done
+[3.629s] -- Found ament_cmake: 2.5.4 (/opt/ros/jazzy/share/ament_cmake/cmake)
+[3.629s] -- Found Python3: /home/brone-ub/ros_venv/bin/python3 (found version "3.12.3") found components: Interpreter 
+[3.629s] -- Configuring done (1.3s)
+[3.629s] -- Generating done (0.0s)
+[3.629s] -- Build files have been written to: /home/brone-ub/robotis_ws/src/build/op3_description
+[3.663s] Invoked command in '/home/brone-ub/robotis_ws/src/build/op3_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/brone-ub/robotis_ws/install/algo_gaze:/home/brone-ub/robotis_ws/install/brone_gaze:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PS1=(ros_venv) \[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ VIRTUAL_ENV_PROMPT=(ros_venv) /usr/bin/cmake /home/brone-ub/robotis_ws/src/ROBOTIS-OP3-Common/op3_description -DCMAKE_INSTALL_PREFIX=/home/brone-ub/robotis_ws/src/install/op3_description
+[3.665s] Invoking command in '/home/brone-ub/robotis_ws/src/build/op3_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/brone-ub/robotis_ws/install/algo_gaze:/home/brone-ub/robotis_ws/install/brone_gaze:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PS1=(ros_venv) \[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ VIRTUAL_ENV_PROMPT=(ros_venv) /usr/bin/cmake --build /home/brone-ub/robotis_ws/src/build/op3_description -- -j16 -l16
+[6.486s] Invoked command in '/home/brone-ub/robotis_ws/src/build/op3_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/brone-ub/robotis_ws/install/algo_gaze:/home/brone-ub/robotis_ws/install/brone_gaze:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PS1=(ros_venv) \[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ VIRTUAL_ENV_PROMPT=(ros_venv) /usr/bin/cmake --build /home/brone-ub/robotis_ws/src/build/op3_description -- -j16 -l16
+[6.488s] Invoking command in '/home/brone-ub/robotis_ws/src/build/op3_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/brone-ub/robotis_ws/install/algo_gaze:/home/brone-ub/robotis_ws/install/brone_gaze:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PS1=(ros_venv) \[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ VIRTUAL_ENV_PROMPT=(ros_venv) /usr/bin/cmake --install /home/brone-ub/robotis_ws/src/build/op3_description
+[6.528s] -- Install configuration: ""
+[6.528s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/ament_index/resource_index/package_run_dependencies/op3_description
+[6.528s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/ament_index/resource_index/parent_prefix_path/op3_description
+[6.528s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/environment/ament_prefix_path.sh
+[6.528s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/environment/ament_prefix_path.dsv
+[6.528s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/environment/path.sh
+[6.528s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/environment/path.dsv
+[6.528s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/local_setup.bash
+[6.528s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/local_setup.sh
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/local_setup.zsh
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/local_setup.dsv
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/package.dsv
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/ament_index/resource_index/packages/op3_description
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/cmake/op3_descriptionConfig.cmake
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/cmake/op3_descriptionConfig-version.cmake
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/package.xml
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/doc
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/doc/OP3 mass property.docx
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/doc/op3_sim.docx
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/doc/op3_sim.ods
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/launch
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/launch/op3_display.launch.py
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/base.stl
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/rl5.stl
+[6.529s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/ll2.stl
+[6.534s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/rl6.stl
+[6.535s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/ll6.stl
+[6.536s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/rl1.stl
+[6.537s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/body.stl
+[6.550s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/rl4.stl
+[6.552s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/rl3.stl
+[6.555s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/ra1.stl
+[6.556s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/ll3.stl
+[6.559s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/h2.stl
+[6.561s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/ra3.stl
+[6.563s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/la1.stl
+[6.564s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/la2.stl
+[6.569s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/la3.stl
+[6.570s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/rl2.stl
+[6.576s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/ll4.stl
+[6.578s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/h1.stl
+[6.579s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/ra2.stl
+[6.581s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/ll5.stl
+[6.585s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/meshes/ll1.stl
+[6.586s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/rviz
+[6.586s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/rviz/op3.rviz
+[6.586s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf
+[6.586s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf/robotis_op3.gazebo.xacro
+[6.586s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf/robotis_op3.transmissions.xacro
+[6.586s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf/robotis_op3.urdf.xacro
+[6.587s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf/robotis_op3.structure.rleg.xacro
+[6.587s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf/robotis_op3.structure.lleg.xacro
+[6.587s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf/robotis_op3.structure.head.xacro
+[6.587s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf/robotis_op3.inertia.xacro
+[6.587s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf/robotis_op3.visuals.xacro
+[6.587s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf/robotis_op3.structure.larm.xacro
+[6.587s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf/gazebo_harness.xacro
+[6.587s] -- Installing: /home/brone-ub/robotis_ws/src/install/op3_description/share/op3_description/urdf/robotis_op3.structure.rarm.xacro

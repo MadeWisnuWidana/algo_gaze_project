@@ -1,0 +1,3 @@
+gmake[2]: *** [CMakeFiles/ros_mpg321_player.dir/build.make:76: CMakeFiles/ros_mpg321_player.dir/src/ros_mpg321_player.cpp.o] Interrupt
+gmake[1]: *** [CMakeFiles/Makefile2:137: CMakeFiles/ros_mpg321_player.dir/all] Interrupt
+gmake: *** [Makefile:146: all] Interrupt
