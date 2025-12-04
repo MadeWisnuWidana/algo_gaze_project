@@ -36,7 +36,7 @@ class FuzzyGazeNode(Node):
 
     def __init__(self):
         super().__init__('algo_gaze_node')
-        self.get_logger().info('Fuzzy Gaze Node: HIGH RESPONSE & SMOOTH (EMA FILTER).')
+        self.get_logger().info('Fuzzy Gaze Node: AGGRESSIVE MODE (High Speed & Response).')
 
         # --- Load Model YOLO ---
         self.declare_parameter('yolo_model_path', 'yolo11s.pt')
@@ -64,12 +64,13 @@ class FuzzyGazeNode(Node):
         self.last_target_switch_time = 0.0
         self.min_switch_delay = 1.0 
         
-        # [REVISI RESPONSIF] Soft Start dipercepat
+        # [TUNING 1: SPEED] Ramp-Up Instan (0.3s)
         self.tracking_start_time = 0.0  
-        self.ramp_duration = 0.8  # DIKURANGI (2.0 -> 0.8s) agar reaksi cepat
+        self.ramp_duration = 0.3
 
-        # [BARU] Parameter Smoothing EMA (Output Filter)
-        self.servo_alpha = 0.25   # 0.25 = Keseimbangan antara halus dan cepat
+        # [TUNING 2: RESPONSIVE] Servo Alpha Naik (0.30)
+        # Mengurangi smoothing agar servo lebih "menggigit" target
+        self.servo_alpha = 0.30   
         self.target_pan = 0.0
         self.target_tilt = 0.0
 
@@ -78,11 +79,11 @@ class FuzzyGazeNode(Node):
         self.current_tilt = 0.0
         self.is_initialized = False 
         
-        # Smoothing Input (Koordinat Wajah)
+        # Input Smoothing (Tetap 0.15 agar input tidak terlalu noisy)
         self.prev_norm_x = 0.0
         self.prev_norm_y = 0.0
         self.prev_norm_z = 0.0
-        self.alpha_coord = 0.2 # Sedikit diperbesar agar input lebih update
+        self.alpha_coord = 0.15 
 
         # --- ARAH SERVO ---
         self.pan_dir = -1 
@@ -96,9 +97,9 @@ class FuzzyGazeNode(Node):
         self.frame_center_y = 120 
         self.pixel_deadband = 16  
 
-        # [BARU] Frame Skipping Variable
+        # Frame Skipping (1 dari 3 frame)
         self.frame_count = 0
-        self.process_every_n_frames = 2 # Proses 1 dari setiap 2 frame (Boost FPS)
+        self.process_every_n_frames = 3 
 
         # --- Komunikasi ROS 2 ---
         self.image_subscription = self.create_subscription(
@@ -170,7 +171,6 @@ class FuzzyGazeNode(Node):
                     idx_tilt = msg.name.index('head_tilt')
                     self.current_pan = msg.position[idx_pan]
                     self.current_tilt = msg.position[idx_tilt]
-                    # Init target agar tidak jump
                     self.target_pan = self.current_pan
                     self.target_tilt = self.current_tilt
                     self.is_initialized = True
@@ -201,7 +201,7 @@ class FuzzyGazeNode(Node):
         if not self.is_initialized:
             return
 
-        # [REVISI] Frame Skipping Logic
+        # Frame Skipping Logic
         self.frame_count += 1
         if self.frame_count % self.process_every_n_frames != 0:
             return
@@ -213,16 +213,15 @@ class FuzzyGazeNode(Node):
         except Exception as e:
             return
         
-        # Resize 320x240
         frame = cv2.resize(frame_raw, (320, 240))
-            
         frame_height, frame_width, _ = frame.shape
         
         self.frame_center_x = frame_width / 2
         self.frame_center_y = frame_height / 2
         
-        # [REVISI] DEADBAND DIPERKECIL JADI 5% (Agar tilt lebih responsif)
-        self.pixel_deadband = 0.05 * self.frame_center_x 
+        # [TUNING 4: BALANCE] DEADBAND 10%
+        # Diturunkan dari 12% ke 10% agar lebih mau mengejar target dekat
+        self.pixel_deadband = 0.10 * self.frame_center_x 
 
         image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         yolo_results = self.yolo_model.track(image_rgb, classes=0, conf=0.5, persist=True, verbose=False)
@@ -237,7 +236,7 @@ class FuzzyGazeNode(Node):
 
             for box, track_id in zip(boxes, ids):
                 x1, y1, x2, y2 = map(int, box)
-                padding = 10 # Padding dikurangi sedikit
+                padding = 10 
                 x1_pad, y1_pad = max(0, x1 - padding), max(0, y1 - padding)
                 x2_pad, y2_pad = min(frame_width, x2 + padding), min(frame_height, y2 + padding)
                 
@@ -359,6 +358,7 @@ class FuzzyGazeNode(Node):
                     raw_norm_x = (face_center_x / frame_width) * 2.0 - 1.0
                     raw_norm_y = (face_center_y / frame_height) * 2.0 - 1.0
                     
+                    # [FILTER TAHAP 1] Smoothing Input
                     smooth_x = (self.alpha_coord * raw_norm_x) + ((1 - self.alpha_coord) * self.prev_norm_x)
                     smooth_y = (self.alpha_coord * raw_norm_y) + ((1 - self.alpha_coord) * self.prev_norm_y)
                     
@@ -397,19 +397,20 @@ class FuzzyGazeNode(Node):
     def track_face_smooth(self, error_x, error_y):
         error_magnitude = math.sqrt(error_x**2 + error_y**2)
 
-        # Deadband (5% - Sangat kecil agar responsif tapi tidak shaking)
-        DEADBAND = 0.05 
+        # [TUNING 4: BALANCE] DEADBAND 10%
+        DEADBAND = 0.10
         if error_magnitude < DEADBAND:
             return 
 
-        # [REVISI] GAIN DINAIKKAN (AGAR RESPONSIF)
+        # [TUNING 3: SPEED] GAIN AGGRESIF (Max 0.20)
+        # Ditingkatkan agar robot lebih berani bergerak
         MIN_GAIN = 0.03
-        MAX_GAIN = 0.15 # Dikembalikan ke level tinggi agar cepat (sebelumnya 0.06)
+        MAX_GAIN = 0.20
         
         base_gain = MIN_GAIN + (error_magnitude * (MAX_GAIN - MIN_GAIN))
         base_gain = min(base_gain, MAX_GAIN)
 
-        # Ramp-Up (0.8 detik, cukup cepat)
+        # Ramp-Up (0.3 detik, hampir instan)
         elapsed = time.time() - self.tracking_start_time
         if elapsed < self.ramp_duration:
             ramp_factor = 0.2 + (0.8 * (elapsed / self.ramp_duration))
@@ -418,25 +419,20 @@ class FuzzyGazeNode(Node):
 
         final_gain = base_gain * ramp_factor
 
-        # Hitung Target Step (Posisi yang diinginkan selanjutnya)
         pan_step = (error_x * final_gain * self.pan_dir)
         tilt_step = (error_y * final_gain * self.tilt_dir)
         
-        # Akumulasi ke variabel Target (Ideal)
         self.target_pan = self.current_pan + pan_step
         self.target_tilt = self.current_tilt + tilt_step
 
-        # [IMPLEMENTASI EMA FILTER]
-        # Alih-alih langsung update current, kita filter transisi ke target
-        # Ini meredam lonjakan gain tinggi (MAX_GAIN 0.15) agar tetap smooth
+        # [FILTER TAHAP 2] Output Smoothing 0.30
+        # Nilai 0.30 berarti servo lebih responsif (hanya 70% inertia posisi lama)
         self.current_pan = (self.servo_alpha * self.target_pan) + ((1 - self.servo_alpha) * self.current_pan)
         self.current_tilt = (self.servo_alpha * self.target_tilt) + ((1 - self.servo_alpha) * self.current_tilt)
 
-        # Batas Servo
         self.current_pan = max(-1.4, min(1.4, self.current_pan))
         self.current_tilt = max(-1.0, min(1.0, self.current_tilt))
         
-        # Update target agar sinkron
         self.target_pan = self.current_pan
         self.target_tilt = self.current_tilt
 
@@ -457,7 +453,7 @@ class FuzzyGazeNode(Node):
         msg.circles.append(circle_point)
         self.center_pub_.publish(msg)
 
-    # --- Helper Methods Fuzzy (Tetap Sama) ---
+    # --- Helper Methods Fuzzy ---
     def create_fuzzy_controller(self):
         proximity = ctrl.Antecedent(np.arange(0, 1.01, 0.01), 'proximity')
         speech_status = ctrl.Antecedent(np.arange(0, 2, 1), 'speech_status')
