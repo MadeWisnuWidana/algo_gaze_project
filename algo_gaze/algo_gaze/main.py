@@ -15,6 +15,7 @@ import os
 import time 
 import math
 import csv  
+import subprocess # Ditambahkan untuk kontrol kamera
 from datetime import datetime 
 from ament_index_python.packages import get_package_share_directory
 from rclpy.qos import QoSProfile, DurabilityPolicy
@@ -36,7 +37,15 @@ class FuzzyGazeNode(Node):
 
     def __init__(self):
         super().__init__('algo_gaze_node')
-        self.get_logger().info('Fuzzy Gaze Node: AGGRESSIVE MODE + STABLE NODDING.')
+        self.get_logger().info('Fuzzy Gaze Node: AGGRESSIVE MODE + STRONG NODDING + BRIO WIDE FOV.')
+
+        # --- [BARU] Setup Kamera Brio FOV ---
+        self.setup_logitech_brio_fov()
+
+        # --- [BARU] Parameter Brightness Visualisasi (Untuk RQT) ---
+        # Default ditingkatkan ke 60 agar lebih terang di RQT
+        self.declare_parameter('viz_brightness', 60) 
+        self.viz_brightness = self.get_parameter('viz_brightness').value
 
         # --- Load Model YOLO ---
         self.declare_parameter('yolo_model_path', 'yolo11s.pt')
@@ -64,19 +73,19 @@ class FuzzyGazeNode(Node):
         self.last_target_switch_time = 0.0
         self.min_switch_delay = 1.0 
         
-        # --- [BARU] Variabel Nodding (Posisi Stabil) ---
+        # --- Variabel Nodding (Posisi Stabil) ---
         self.is_nodding = False
         self.nod_start_time = 0.0
         self.nod_base_tilt = 0.0
-        self.stable_start_time = 0.0   # Waktu mulai stabil
-        self.is_stable_now = False     # Status stabil saat ini
-        self.has_nodded_for_target = False # Flag agar 1 target = 1 anggukan
+        self.stable_start_time = 0.0   
+        self.is_stable_now = False     
+        self.has_nodded_for_target = False
         self.last_target_id_check = None
 
         # [TUNING: HIGH RESPONSE]
         self.tracking_start_time = 0.0  
         self.ramp_duration = 0.3
-        self.servo_alpha = 0.30   # Responsif
+        self.servo_alpha = 0.30   
         self.target_pan = 0.0
         self.target_tilt = 0.0
 
@@ -93,7 +102,7 @@ class FuzzyGazeNode(Node):
 
         # --- ARAH SERVO ---
         self.pan_dir = -1 
-        self.tilt_dir = 1   
+        self.tilt_dir = 1    
 
         # --- VARIABEL PEREKAMAN DATA ---
         self.is_recording = False
@@ -105,7 +114,7 @@ class FuzzyGazeNode(Node):
 
         # Frame Skipping 
         self.frame_count = 0
-        self.process_every_n_frames = 2 # Gunakan 2 agar lebih responsif dari 3
+        self.process_every_n_frames = 2 
 
         # --- Komunikasi ROS 2 ---
         self.image_subscription = self.create_subscription(
@@ -137,6 +146,33 @@ class FuzzyGazeNode(Node):
 
         self.set_module_client = self.create_client(SetModule, '/robotis/set_present_ctrl_modules')
         self.activate_head_module()
+
+    # --- [MODIFIKASI] Fungsi Setup Kamera Logitech Brio Lebih Agresif ---
+    def setup_logitech_brio_fov(self):
+        """Mengatur FOV kamera Logitech Brio ke mode Wide & Reset Posisi"""
+        try:
+            # v4l2-ctl harus terinstall
+            # zoom_absolute=1 biasanya nilai minimum (paling wide/unzoomed)
+            # pan dan tilt di-reset ke 0 agar gambar tepat di tengah sensor
+            commands = [
+                ['v4l2-ctl', '-d', '/dev/video0', '--set-ctrl=zoom_absolute=1'],
+                ['v4l2-ctl', '-d', '/dev/video0', '--set-ctrl=pan_absolute=0'],
+                ['v4l2-ctl', '-d', '/dev/video0', '--set-ctrl=tilt_absolute=0'],
+                ['v4l2-ctl', '-d', '/dev/video0', '--set-ctrl=focus_auto=0'] # Matikan auto focus biar stabil
+            ]
+            
+            self.get_logger().info("Setup Kamera Brio: Mengatur Zoom Wide & Reset Pan/Tilt...")
+            
+            for cmd in commands:
+                subprocess.run(
+                    cmd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=1.0
+                )
+            self.get_logger().info("Setup Kamera Brio Selesai.")
+        except Exception as e:
+            self.get_logger().warn(f"Gagal setup kamera: {e}")
 
     # --- Callback Pemicu Rekaman ---
     def trigger_callback(self, msg):
@@ -207,7 +243,7 @@ class FuzzyGazeNode(Node):
         if not self.is_initialized:
             return
         
-        # [MODIFIKASI] JIKA SEDANG MENGANGGUK, BYPASS DETEKSI
+        # JIKA SEDANG MENGANGGUK, BYPASS DETEKSI
         if self.is_nodding:
             self.process_nodding_animation()
             return 
@@ -311,7 +347,7 @@ class FuzzyGazeNode(Node):
             potential_winner = sorted_people[0]
             current_time = time.time()
 
-            # [MODIFIKASI] Reset status jika target berubah
+            # Reset status jika target berubah
             if self.current_target_id != potential_winner['id']:
                 self.current_target_id = potential_winner['id']
                 self.last_target_switch_time = current_time
@@ -355,7 +391,7 @@ class FuzzyGazeNode(Node):
                     metric_pixel_error = math.sqrt(err_x_px**2 + err_y_px**2)
                     metric_on_target = 1 if metric_pixel_error <= self.pixel_deadband else 0
 
-                    # [MODIFIKASI UTAMA] LOGIKA DETEKSI POSISI STABIL 2 DETIK
+                    # LOGIKA DETEKSI POSISI STABIL 2 DETIK
                     if metric_on_target == 1:
                         # Jika masuk Deadband (Stabil)
                         if not self.is_stable_now:
@@ -409,26 +445,29 @@ class FuzzyGazeNode(Node):
             ])
 
         try:
-            annotated_msg = self.bridge.cv2_to_imgmsg(frame, 'bgr8')
+            # --- [MODIFIKASI] Brightness untuk tampilan RQT ---
+            # Meningkatkan kecerahan secara signifikan (beta=60) agar terlihat jelas di RQT
+            frame_viz = cv2.convertScaleAbs(frame, alpha=1.0, beta=self.viz_brightness)
+            
+            annotated_msg = self.bridge.cv2_to_imgmsg(frame_viz, 'bgr8')
             annotated_msg.header = msg.header
             self.image_publisher.publish(annotated_msg)
         except Exception as e:
             pass
 
-    # [FUNGSI BARU] Animasi Mengangguk
+    # [MODIFIKASI] Animasi Mengangguk Lebih Terlihat & Cepat
     def process_nodding_animation(self):
         """Fungsi khusus animasi, bypass tracking"""
         elapsed = time.time() - self.nod_start_time
-        duration = 0.8 # Durasi total anggukan (detik)
+        duration = 0.6 # [Dipercepat] Durasi total anggukan jadi 0.6 detik
         
         if elapsed < duration:
-            # Gerakan Sinusoidal Mulus (Turun-Naik-Kembali)
-            # 0 -> PI (Turun), PI -> 2PI (Naik)
-            # Amplitude 0.3 radian
-            offset = 0.3 * math.sin(2 * math.pi * elapsed / duration)
+            # [DITINGKATKAN] Amplitude 0.8 rad (~45 derajat) agar sangat terlihat
+            amplitude = 0.8 
+            offset = amplitude * math.sin(2 * math.pi * elapsed / duration)
             
-            # Update posisi (Langsung tanpa smoothing agar cepat)
-            self.target_tilt = self.nod_base_tilt + abs(offset) # Abs agar menunduk (positif)
+            # Update posisi
+            self.target_tilt = self.nod_base_tilt + abs(offset) 
             self.current_tilt = self.target_tilt 
             
             # Kirim ke motor
@@ -441,7 +480,7 @@ class FuzzyGazeNode(Node):
         else:
             self.is_nodding = False
             self.current_tilt = self.nod_base_tilt # Kembalikan ke posisi awal
-            self.get_logger().info("--- Selesai Mengangguk ---")
+            self.get_logger().info("--- Selesai Mengangguk (Kuat) ---")
 
     def track_face_smooth(self, error_x, error_y):
         error_magnitude = math.sqrt(error_x**2 + error_y**2)
